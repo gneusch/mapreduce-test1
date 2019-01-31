@@ -4,6 +4,7 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import utils.JobPostingHandler;
 
 import java.io.IOException;
 
@@ -13,10 +14,10 @@ public  class Map extends Mapper<LongWritable, Text, Text, IntWritable> {
             throws IOException, InterruptedException {
 
         String line = value.toString();
-        String[] words = line.split(" ");
+        String[] words = JobPostingHandler.getJobTitleFromPosting(line).split(" ");
 
         for (String word : words) {
-            context.write(new Text(word), new IntWritable(1));
+            context.write(new Text(word.toLowerCase()), new IntWritable(1));
         }
     }
 }
