@@ -2,5 +2,3 @@
 *.iml
 .gradle/
 out/
-src/main/resources/
-src/test/resources/
