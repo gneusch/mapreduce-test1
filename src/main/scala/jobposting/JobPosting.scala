@@ -1,10 +1,14 @@
 package jobposting
 
 import org.joda.time.{DateTime => JodaDateTime}
-import spray.json._
 import utils.JsonUtils
+import spray.json._
+import esco.EscoSkill
 
 import scala.io.Source
+import scala.concurrent._
+import ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
 case class JobPosting (
                         crawlingDate: JodaDateTime,
@@ -45,7 +49,8 @@ object Main extends App {
 //
   //println(jobPosting.crawlingDate.toDate)
 
-  val jobPostingFile = JobPostingFile("/home/answeris42/Workspace/scraper/JobPostingScraper/data/2019_01_23_indeed_uk_fromage1.jl")
-  jobPostingFile.jobPostingLines.map(x => println(JobPostingCreator.fromJsonLine(x).titlePosting))
-
+  //val jobPostingFile = JobPostingFile("/home/answeris42/Workspace/scraper/JobPostingScraper/data/2019_01_23_indeed_uk_fromage1.jl")
+  //jobPostingFile.jobPostingLines.map(x => println(JobPostingCreator.fromJsonLine(x).titlePosting))
+  val skillList = Await.result(EscoSkill.getSkillList("hu"), Duration.Inf)
+  skillList.map(println)
 }

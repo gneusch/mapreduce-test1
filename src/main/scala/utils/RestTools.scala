@@ -22,6 +22,6 @@ trait RestTools {
       uri = url
     )
 
-  def futureResponse(url: String): Future[HttpResponse] = Http().singleRequest(getRequest(url))
+  def getInFuture(url: String): Future[HttpResponse] = Http().singleRequest(getRequest(url))
 
 }

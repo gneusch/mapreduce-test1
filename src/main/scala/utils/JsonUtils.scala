@@ -6,12 +6,21 @@ import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.{Failure, Success, Try}
 import DefaultJsonProtocol._
-import esco.{PreferredLabel, SkillList, TopConceptList}
+import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
+import esco.{PreferredLabel, Self, SkillList, TopConceptList}
 
 trait JsonUtils extends SupportTools {
 
+  def parseToSkillList(jsonStr: String): SkillList = {
+    jsonStr.parseJson.convertTo[SkillList]
+  }
+
+  implicit def skillListUnmarshaller: FromEntityUnmarshaller[SkillList] = {
+    Unmarshaller.stringUnmarshaller.map(parseToSkillList)
+  }
+
   implicit val jodaDateTimeFormat: JsonFormat[JodaDateTime] =
-    new JF[JodaDateTime] {
+    new JsonFormat[JodaDateTime] {
       override def read(json: JsValue): JodaDateTime = json match {
         case JsString(string) => Try(JodaDateTime.parse(string)) match {
           case Success(validDateTime) => validDateTime
@@ -24,7 +33,7 @@ trait JsonUtils extends SupportTools {
     }
 
   implicit val jobPostingFormat: JsonFormat[JobPosting] =
-    new JF[JobPosting] {
+    new JsonFormat[JobPosting] {
       override def read(json: JsValue): JobPosting = {
         val fields = json.asJsObject("JobPosting object expected").fields
         JobPosting(
@@ -47,15 +56,15 @@ trait JsonUtils extends SupportTools {
         )
       }
 
-      override def write(obj: JobPosting) = ??? //TODO implementation
+      override def write(obj: JobPosting) = ???
     }
 
   implicit val skillListFormat: JsonFormat[SkillList] =
-    new JF[SkillList] {
+    new JsonFormat[SkillList] {
       override def read(json: JsValue): SkillList = {
         val fields = json.asJsObject("SkillList object expected").fields
         SkillList(
-          links = fields("_links").convertTo[TopConceptList], //TODO implicit TopConceptList
+          links = fields("_links").convertTo[TopConceptList],
           classId = fields("classId").convertTo[String],
           className = fields("className").convertTo[String],
           preferredLabel = fields("preferredLabel").convertTo[PreferredLabel],
@@ -64,22 +73,23 @@ trait JsonUtils extends SupportTools {
         )
       }
 
-      override def write(obj: SkillList): JsValue = ??? //TODO implementation
+      override def write(obj: SkillList): JsValue = ???
     }
 
   implicit val preferredLabelFormat: JsonFormat[PreferredLabel] =
-    new JF[PreferredLabel] {
+    new JsonFormat[PreferredLabel] {
       override def read(json: JsValue): PreferredLabel = {
-        case Seq(JsString(bg), JsString(cs), JsString(da), JsString(de), JsString(el), JsString(en),
-                 JsString(es), JsString(et), JsString(fi), JsString(fr), JsString(ga), JsString(hr),
-                 JsString(hu), JsString(is), JsString(it), JsString(lt), JsString(lv), JsString(mt),
-                 JsString(nl), JsString(no), JsString(pl), JsString(pt), JsString(ro), JsString(sk),
-                 JsString(sl), JsString(sv)) =>
-          new PreferredLabel(bg, cs, da, de, el, en, es, et, fi, fr, ga, hr, hu, is, it, lt, lv, mt, nl, no, pl, pt, ro, sk, sl, sv)
-        case _ => throw new DeserializationException("PreferredLabel expected")
+        val fields = json.asJsObject("PreferredLabel object expected").fields
+        PreferredLabel(
+          huLabel = fields("hu").convertTo[String],
+          enLabel = fields("en").convertTo[String]
+        )
       }
 
-      override def write(obj: PreferredLabel): JsValue = ??? //TODO implementation
+      override def write(obj: PreferredLabel): JsValue = ???
     }
 
+  implicit val selfFormat: JsonFormat[Self] = jsonFormat3(Self)
+
+  implicit val topConceptListFormat: JsonFormat[TopConceptList] = jsonFormat2(TopConceptList)
 }
