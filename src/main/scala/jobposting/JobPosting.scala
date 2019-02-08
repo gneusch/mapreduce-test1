@@ -1,7 +1,7 @@
 package jobposting
 
 import org.joda.time.{DateTime => JodaDateTime}
-import utils.JsonUtils
+import utils.{JobPostingJsonUtils, Languages}
 import spray.json._
 import esco.EscoSkill
 
@@ -23,7 +23,7 @@ case class JobPosting (
                         jobLocation: String
                       )
 
-object JobPostingCreator extends JsonUtils {
+object JobPostingCreator extends JobPostingJsonUtils {
   def fromJsonLine(jobPostingString: String): JobPosting = jobPostingString.parseJson.convertTo[JobPosting]
 }
 
@@ -51,6 +51,22 @@ object Main extends App {
 
   //val jobPostingFile = JobPostingFile("/home/answeris42/Workspace/scraper/JobPostingScraper/data/2019_01_23_indeed_uk_fromage1.jl")
   //jobPostingFile.jobPostingLines.map(x => println(JobPostingCreator.fromJsonLine(x).titlePosting))
-  val skillList = Await.result(EscoSkill.getSkillList("hu"), Duration.Inf)
-  skillList.map(println)
+  val lang = Languages.EN
+  val skillList = Await.result(EscoSkill.getSkillList(lang), Duration.Inf)
+  skillList.links.hasTopConcept.map{
+    indivSkill => {
+      println("---------------")
+      println(indivSkill.title)
+      val indivSkillDetails = Await.result(EscoSkill.getSkill(indivSkill.uri, lang), Duration.Inf)
+      val alternateLabelListOption = lang.name match {
+        case Languages.HU.name => indivSkillDetails.alternativeLabel.huLabels
+        case _ => indivSkillDetails.alternativeLabel.enLabels
+      }
+      alternateLabelListOption match {
+        case Some(alternateLabelList) => alternateLabelList map {println}
+        case None =>
+      }
+    }
+  }
+  System.exit(0)
 }

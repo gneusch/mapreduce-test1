@@ -2,6 +2,9 @@ package esco
 
 trait EscoService {
   final val API_URL = "https://ec.europa.eu/esco/api"
-  final val RESOURCE_URI = "/resource?uri="
-  final val TAXONOMY_URI = "/resource/taxonomy?uri="
+  final val RESOURCE_URI = "/resource" //"/resource?uri="
+  final val TAXONOMY_URI = "/taxonomy" //"/resource/taxonomy?uri="
+  final val LANGUAGE_PROP = "&language="
+  final val URI_PROP = "?uri="
+
 }
