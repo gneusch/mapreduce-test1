@@ -11,7 +11,7 @@ case class Description(enDescription: String)
 case class PreferredLabel(enLabel: String, huLabel: String)
 case class AlternativeLabel(enLabels: Option[List[String]], huLabels: Option[List[String]])
 case class SkillList(links: TopConceptList, classId: String, className: String, preferredLabel: PreferredLabel, title: String, uri: String)
-case class Skill(className: String, uri: String, title:String, description: Option[Description], preferredLabel: PreferredLabel, alternativeLabel: AlternativeLabel)
+case class Skill(className: String, uri: String, title:String, description: Option[Description], preferredLabel: PreferredLabel, alternativeLabel: Option[AlternativeLabel])
 
 object EscoSkill extends EscoJsonUtils with RestTools with EscoService {
 

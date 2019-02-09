@@ -104,7 +104,7 @@ trait EscoJsonUtils extends JsonUtils {
           title = fields("title").convertTo[String],
           description = getOptionalField(fields, "description")(descriptionFormat),
           preferredLabel = fields("preferredLabel").convertTo[PreferredLabel],
-          alternativeLabel = fields("alternativeLabel").convertTo[AlternativeLabel]
+          alternativeLabel = getOptionalField[AlternativeLabel](fields,"alternativeLabel")
         )
       }
 
