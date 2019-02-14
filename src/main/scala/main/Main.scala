@@ -1,6 +1,6 @@
 package main
 
-import esco.EscoSkill
+import esco.{EscoQueuingSkillHttp, EscoSkill, EscoSkillHttp}
 import utils.Languages
 
 import scala.concurrent._
@@ -18,65 +18,31 @@ object Main extends App {
   //val jobPostingFile = JobPostingFile("/home/answeris42/Workspace/scraper/JobPostingScraper/data/2019_01_23_indeed_uk_fromage1.jl")
   //jobPostingFile.jobPostingLines.map(x => println(JobPostingCreator.fromJsonLine(x).titlePosting))
 
-  val lang = Languages.HU
-  val skillList = Await.result(EscoSkill.getSkillList(lang), Duration.Inf)
-  /*skillList.links.hasTopConcept.map{
-    indivSkill => {
-      println("---------------")
-      println(indivSkill.title)
-      val indivSkillDetails = Await.result(EscoSkill.getSkill(indivSkill.uri, lang), Duration.Inf)
-      val alternateLabelListOption = lang.name match {
-        case Languages.HU.name => indivSkillDetails.alternativeLabel match {
-          case Some(alternativeLabel) => alternativeLabel.huLabels
-          case None => None
+  val lang = Languages.EN
+  val escoSkillHttp = new EscoQueuingSkillHttp(8192)
+
+  val escoSkillList = escoSkillHttp.getListOfSkills(lang)
+
+  val skillTitleList = escoSkillList map {
+    skillList => skillList flatMap {
+      skill => {
+        val preferredLabel = skill.preferredLabel.enLabel
+        val alternativeLabel = skill.alternativeLabel match {
+          case Some(alternateLabel) => lang.name match {
+            case Languages.HU.name => alternateLabel.getLabelList(Languages.HU)
+            case _ => alternateLabel.getLabelList(Languages.EN)
+          }
+          case None => List()
         }
-        case _ => indivSkillDetails.alternativeLabel match {
-          case Some(alternativeLabel) => alternativeLabel.enLabels
-          case None => None
-        }
-      }
-      alternateLabelListOption match {
-        case Some(alternateLabelList) => alternateLabelList map {println}
-        case None =>
+        preferredLabel :: alternativeLabel
       }
     }
   }
-  System.exit(0)*/
-
-  skillList.links.hasTopConcept.map{
-    indivSkill => {
-
-      def printTitle = {
-        println("---------------")
-        println(indivSkill.title)
-      }
-
-      val indivSkillDetails = EscoSkill.getSkill(indivSkill.uri, lang)
-
-      indivSkillDetails.onComplete {
-        case Success(value) => {
-          printTitle
-          val alternateLabelListOption = lang.name match {
-            case Languages.HU.name => value.alternativeLabel match {
-              case Some(alternativeLabel) => alternativeLabel.huLabels
-              case None => None
-            }
-            case _ => value.alternativeLabel match {
-              case Some(alternativeLabel) => alternativeLabel.enLabels
-              case None => None
-            }
-          }
-          alternateLabelListOption match {
-            case Some(alternateLabelList) => alternateLabelList map {println}
-            case None =>
-          }
-        }
-        case Failure(exception) => {
-          printTitle
-          println(s"An Error occured: $exception")
-        }
-      }
-
+  Await.result(skillTitleList, Duration.Inf) map {
+    var i = 0
+    title => {
+      i = i + 1
+      println(s"$i: $title")
     }
   }
 }
