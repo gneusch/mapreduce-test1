@@ -27,7 +27,18 @@ trait HttpTools {
 
 }
 
-class QueueingHttpTools(host: String, queueSize: Int = 8) extends HttpTools {
+class StreamingHttpsTools[T](urlList: List[String], parseUrls: ((String, HttpResponse)) => List[T]) extends HttpTools {
+
+  //TODO understand and finish this
+  def source = Source(urlList)
+    .map(url => getInFuture(url).map((url, _)))
+    .mapAsync(4)(identity)
+    .map(parseUrls)
+
+
+}
+
+class QueueingHttpsTools(host: String, queueSize: Int = 8) extends HttpTools {
 
   // This idea came initially from this blog post:
   // http://kazuhiro.github.io/scala/akka/akka-http/akka-streams/2016/01/31/connection-pooling-with-akka-http-and-source-queue.html

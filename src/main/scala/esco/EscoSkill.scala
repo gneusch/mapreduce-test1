@@ -1,7 +1,7 @@
 package esco
 
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import utils.{EscoJsonUtils, HttpTools, Languages, QueueingHttpTools}
+import utils.{EscoJsonUtils, HttpTools, Languages, QueueingHttpsTools}
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
@@ -77,7 +77,7 @@ class EscoSkillHttp extends EscoService with EscoSkill {
 
 class EscoQueuingSkillHttp(queueSize: Int = 32) extends EscoSkillHttp {
 
-  def queueingHttpTools(url: String) = new QueueingHttpTools(url, queueSize)
+  def queueingHttpTools(url: String) = new QueueingHttpsTools(url, queueSize)
   val httpQuery = queueingHttpTools(ESCO_HOST)
 
   /*def getSkill(uri: String): Future[Skill] = {
