@@ -7,8 +7,7 @@ import utils.JobPostingJsonUtils
 import spray.json._
 
 import scala.io.Source
-//TODO use JavaConverters
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import org.apache.commons.io.FileUtils
 import textmining.HtmlUtils
 
@@ -56,7 +55,7 @@ object JobPostingFile  {
   }
 
   def getFromDir(path: String, extensions: List[String]): List[JobPostingFile] = {
-    FileUtils.listFiles(new File(path), extensions.toArray, false).map{
+    FileUtils.listFiles(new File(path), extensions.toArray, false).asScala.map{
       f => apply(f.getAbsolutePath)
     }.toList
   }
