@@ -9,16 +9,18 @@ object TextUtils {
     }
   }
 
-  def genBiGrams(wordList: List[String]): List[Option[(String,String)]] = wordList match {
+  def genBiGrams(wordList: List[String]): List[(String,String)] = wordList match {
     case x :: Nil => Nil
-    case x :: xs => Some(x, xs.head) :: genBiGrams(xs.tail)
+    case x :: xs => (x, xs.head) :: genBiGrams(xs)
     case _ => Nil
   }
 
-  def genTriGrams(wordList: List[String]): List[Option[(String, String, String)]] = wordList match {
+  def genTriGrams(wordList: List[String]): List[(String, String, String)] = wordList match {
     case x :: y :: Nil => Nil
-    case x :: y :: xs => Some(x, y, xs.head) :: genTriGrams(y :: xs)
+    case x :: y :: xs => (x, y, xs.head) :: genTriGrams(y :: xs)
     case _ => Nil
   }
+
+  def strListToLower(wordList: List[String]) = wordList map { _.toLowerCase }
 
 }
