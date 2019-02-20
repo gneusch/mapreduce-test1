@@ -2,7 +2,7 @@ package main
 
 import esco.{EscoQueuingSkillHttp, EscoSkill, EscoSkillHttp}
 import jobposting.{JobPostingCreator, JobPostingFile}
-import textmining.HtmlUtils
+import textmining.{HtmlUtils, TextUtils}
 import utils.Languages
 
 import scala.concurrent._
@@ -48,22 +48,41 @@ object Main extends App {
   }
 
   def findBiGramsInSkillLabels = {
+    import textmining.TextUtils._
+
     val jobPostingDir = s"/home/answeris42/Workspace/scraper/JobPostingScraper/data/"
     val extensions = List("jl")
-    val jobPostingTitleDescTuple = Future {
+    val jobPostingTitleDescTupleFuture = Future {
       JobPostingFile.getFromDir(jobPostingDir, extensions) flatMap {
         jobposting => jobposting.getJobPostings
       } map {
         jobposting => (
           jobposting.titlePosting,
-          jobposting.jobDescriptionToStringList
+          genBiGrams(strListToLower(jobposting.jobDescriptionToStringList)) map {
+            case (str1, str2) => s"$str1 $str2"
+          }
         )
       }
     }
-    jobPostingTitleDescTuple
+    /*val escoLabelsFuture = getSkillLabelList
+
+    val postingDescEscoSkillMap = jobPostingTitleDescTupleFuture flatMap {
+      jPTDT => escoLabelsFuture map {
+        escoLabels => jPTDT map {
+          jobPosting => (jobPosting._1, jobPosting._2.filter( biGram => escoLabels.exists(_.contains(biGram))), escoLabels.filter( label => jobPosting._2.exists(label.contains(_))))
+        }
+      }
+    }
+
+    postingDescEscoSkillMap*/
+    Await.result(jobPostingTitleDescTupleFuture, Duration.Inf) map {
+      jobposting => println(jobposting)
+    }
+
   }
 
-  Await.result(findBiGramsInSkillLabels, Duration.Inf) map {
-    postingTupples => println(postingTupples._1, postingTupples._2)
-  }
+  /*Await.result(findBiGramsInSkillLabels, Duration.Inf) map {
+    postingTupples => println(postingTupples._1, postingTupples._2, postingTupples._3)
+  }*/
+  findBiGramsInSkillLabels
 }

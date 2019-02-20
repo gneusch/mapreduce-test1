@@ -33,6 +33,14 @@ case class JobPosting (
   }
 }
 
+object JobPosting {
+
+  def jobDescGramListInEscoSkills(jobDescGramList: List[String], escoSkillList: List[String]) =
+    jobDescGramList.filter(jobDescGram => escoSkillList.exists(escoSkill => escoSkill.contains(jobDescGram)))
+
+
+}
+
 object JobPostingCreator extends JobPostingJsonUtils {
   def fromJsonLine(jobPostingString: String): JobPosting = jobPostingString.parseJson.convertTo[JobPosting]
 }
