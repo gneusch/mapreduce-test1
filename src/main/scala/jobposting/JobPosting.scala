@@ -35,8 +35,11 @@ case class JobPosting (
 
 object JobPosting {
 
-  def jobDescGramListInEscoSkills(jobDescGramList: List[String], escoSkillList: List[String]) =
+  def jobDescGramListInEscoSkills(jobDescGramList: List[String], escoSkillList: List[String]): List[String] =
     jobDescGramList.filter(jobDescGram => escoSkillList.exists(escoSkill => escoSkill.contains(jobDescGram)))
+
+  def escoSkillsListWithJobDesc(jobDescGramList: List[String], escoSkillList: List[String]): List[String] =
+    escoSkillList.filter(escoSkill => jobDescGramList.exists(jobDescGram => escoSkill.contains(jobDescGram)))
 
 
 }

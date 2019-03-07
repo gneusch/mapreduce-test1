@@ -2,6 +2,8 @@ package main
 
 import esco.{EscoQueuingSkillHttp, EscoSkill, EscoSkillHttp}
 import jobposting.{JobPostingCreator, JobPostingFile}
+import org.apache.log4j.{Level, Logger}
+import org.apache.spark.{SparkConf, SparkContext}
 import textmining.{HtmlUtils, TextUtils}
 import utils.Languages
 
@@ -11,6 +13,11 @@ import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
 object Main extends App {
+
+  Logger.getLogger("org").setLevel(Level.DEBUG)
+
+  val sparkConf = new SparkConf().setAppName("jobPostingApp").setMaster("local[*]")
+  val sparkContext = new SparkContext(sparkConf)
 
   def getSkillLabelList = {
     val lang = Languages.EN
@@ -49,6 +56,7 @@ object Main extends App {
 
   def findBiGramsInSkillLabels = {
     import textmining.TextUtils._
+    import jobposting.JobPosting._
 
     val jobPostingDir = s"/home/answeris42/Workspace/scraper/JobPostingScraper/data/"
     val extensions = List("jl")
@@ -64,25 +72,77 @@ object Main extends App {
         )
       }
     }
-    /*val escoLabelsFuture = getSkillLabelList
+    val escoLabelsFuture = getSkillLabelList
 
     val postingDescEscoSkillMap = jobPostingTitleDescTupleFuture flatMap {
       jPTDT => escoLabelsFuture map {
         escoLabels => jPTDT map {
-          jobPosting => (jobPosting._1, jobPosting._2.filter( biGram => escoLabels.exists(_.contains(biGram))), escoLabels.filter( label => jobPosting._2.exists(label.contains(_))))
+          jobPosting => {
+            val t1 = Future {
+              jobDescGramListInEscoSkills(jobPosting._2,escoLabels)
+            }
+            val t2 = Future {
+              escoSkillsListWithJobDesc(jobPosting._2,escoLabels)
+            }
+            (jobPosting._1, Await.result(t1, Duration.Inf), Await.result(t2, Duration.Inf))
+          }
         }
       }
     }
 
-    postingDescEscoSkillMap*/
-    Await.result(jobPostingTitleDescTupleFuture, Duration.Inf) map {
-      jobposting => println(jobposting)
-    }
+    postingDescEscoSkillMap
 
   }
 
-  /*Await.result(findBiGramsInSkillLabels, Duration.Inf) map {
-    postingTupples => println(postingTupples._1, postingTupples._2, postingTupples._3)
-  }*/
-  findBiGramsInSkillLabels
+  //Await.result(findBiGramsInSkillLabels, Duration.Inf) map {
+  //  postingTripples => println(postingTripples._1, postingTripples._2, postingTripples._3)
+  //}
+
+  def findBiGramsInSkillLabelsWithSpark = {
+    import textmining.TextUtils._
+
+    val jobPostingDir = s"/home/answeris42/Workspace/scraper/JobPostingScraper/data/"
+    val extensions = List("jl")
+
+    val jobPostingTitleDescTupleFuture = Future {
+      JobPostingFile.getFromDir(jobPostingDir, extensions) flatMap {
+        jobposting => jobposting.getJobPostings
+      } map {
+        jobposting => (
+          jobposting.titlePosting,
+          genBiGrams(strListToLower(jobposting.jobDescriptionToStringList)) map {
+            case (str1, str2) => s"$str1 $str2"
+          }
+        )
+      }
+    }
+    val escoLabelsFuture = getSkillLabelList
+
+    val jobPostingTitleDescTuple = Await.result(jobPostingTitleDescTupleFuture, Duration.Inf)
+
+    println(s"\n\n\nJobPosting reading is finished\n\n\n")
+
+    val escoLabels = Await.result(escoLabelsFuture, Duration.Inf)
+
+    println(s"\n\n\nEscolabels downloaded\n\n\n")
+
+    val jobPostingTitleDescTupleRDD = sparkContext.parallelize(jobPostingTitleDescTuple)
+    val escoLabelsRDD = sparkContext.parallelize(escoLabels)
+
+    val escoLabelsBC = sparkContext.broadcast(escoLabelsRDD.collect)
+
+    val something = jobPostingTitleDescTupleRDD.flatMap(
+      jobDescMap => {
+        val jobDescList = jobDescMap._2.filter( jobDesc => escoLabelsBC.value.exists( _.contains(jobDesc)) )
+        jobDescList.length match {
+          case 0 => None
+          case _ => Some(jobDescMap._1, jobDescList)
+        }
+      }
+    )
+    something.saveAsTextFile("out/experiment1.text")
+
+  }
+
+  findBiGramsInSkillLabelsWithSpark
 }

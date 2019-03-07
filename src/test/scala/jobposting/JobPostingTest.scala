@@ -23,9 +23,13 @@ class JobPostingTest extends AssertionsForJUnit {
 
   var jobPosting: JobPosting = _
 
-  val escoSkillList: List[String] = List("manage lending institution operations", "use access control software", "collect goods, bring together goods",
-    "group goods", "gather goods", "gather goods together", "gather together goods", "sell insurance", "sell insurance products", "sell insurance services",
-    "retail insurance", "principles of programme management", "managing of projects", "fundamentals of project management", "principles of project management")
+  val escoSkillList: List[String] = List("manage lending institution operations",
+    "use access control software", "collect goods, bring together goods",
+    "group goods", "gather goods", "gather goods together", "gather together goods",
+    "sell insurance", "sell insurance products", "sell insurance services",
+    "retail insurance", "principles of programme management", "managing of projects",
+    "fundamentals of project management", "principles of project management"
+  )
 
   @Before def init: Unit = {
 
@@ -49,8 +53,18 @@ class JobPostingTest extends AssertionsForJUnit {
   @Test def jobDescGramListInEscoSkillsTest: Unit = {
 
     val jobDescriptionStringList = jobDescGramListInEscoSkills(genBiGrams(strListToLower(jobPosting.jobDescriptionToStringList))
-      .map{ case (str1, str2) => s"$str1 $str2" }, escoSkillList)
-    assertEquals(List("of projects", "project management", "of project", "project management", "insurance services"), jobDescriptionStringList)
+      .map{ case (str1, str2) => s"$str1 $str2" }, escoSkillList).sorted
+    val expected = List("of projects", "project management", "of project", "project management", "insurance services").sorted
+    assertEquals(expected, jobDescriptionStringList)
+
+  }
+
+  @Test def escoSkillsListWithJobDescTest: Unit = {
+
+    val escoSkillsList = escoSkillsListWithJobDesc(genBiGrams(strListToLower(jobPosting.jobDescriptionToStringList))
+      .map{ case (str1, str2) => s"$str1 $str2" }, escoSkillList).sorted
+    val expected = List("managing of projects","fundamentals of project management", "principles of project management", "sell insurance services").sorted
+    assertEquals(expected, escoSkillsList)
 
   }
 
