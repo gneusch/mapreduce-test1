@@ -13,7 +13,7 @@ case class Description(enDescription: String)
 case class PreferredLabel(enLabel: String, huLabel: String)
 case class AlternativeLabel(enLabels: Option[List[String]], huLabels: Option[List[String]]) {
   def getLabelList(lang: Languages) = lang match {
-    case Languages.HU => getList(huLabels)
+      case Languages.HU => getList(huLabels)
       case _ =>  getList(enLabels)
     }
 
@@ -22,7 +22,7 @@ case class AlternativeLabel(enLabels: Option[List[String]], huLabels: Option[Lis
     case None => List()
   }
 }
-case class SkillList(links: TopConceptList, classId: String, className: String, preferredLabel: PreferredLabel, title: String, uri: String)
+case class escoSkillList(links: TopConceptList, classId: String, className: String, preferredLabel: PreferredLabel, title: String, uri: String)
 case class Skill(className: String, uri: String, title:String, description: Option[Description], preferredLabel: PreferredLabel, alternativeLabel: Option[AlternativeLabel])
 
 trait EscoSkill extends EscoJsonUtils with HttpTools with EscoService {
@@ -37,7 +37,7 @@ class EscoSkillHttp extends EscoService with EscoSkill {
     val url = getSkillListUrl(langCode)
     val responseFuture = getInFuture(s"$API_URL$RESOURCE_URI$URI_PROP$url")
     responseFuture flatMap {
-      response => Unmarshal(response.entity).to[SkillList] map {
+      response => Unmarshal(response.entity).to[escoSkillList] map {
         skillListResponse => skillListResponse.links.hasTopConcept map {
           self => self.title
         }
@@ -45,11 +45,11 @@ class EscoSkillHttp extends EscoService with EscoSkill {
     }
   }
 
-  def getSkillList(langCode: Languages): Future[SkillList] = {
+  def getSkillList(langCode: Languages): Future[escoSkillList] = {
     val url = getSkillListUrl(langCode)
     val responseFuture = getInFuture(s"$API_URL$RESOURCE_URI$URI_PROP$url")
     responseFuture flatMap {
-      response => Unmarshal(response.entity).to[SkillList]
+      response => Unmarshal(response.entity).to[escoSkillList]
     }
   }
 

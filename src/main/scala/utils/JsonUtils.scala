@@ -5,6 +5,7 @@ import spray.json._
 import org.joda.time.{DateTime => JodaDateTime}
 
 import scala.util.{Failure, Success, Try}
+import scala.collection.breakOut
 import DefaultJsonProtocol._
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshaller}
 import esco._
@@ -61,11 +62,11 @@ trait JobPostingJsonUtils extends JsonUtils with SupportTools {
 }
 
 trait EscoJsonUtils extends JsonUtils {
-  def parseToSkillList(jsonStr: String): SkillList = {
-    jsonStr.parseJson.convertTo[SkillList]
+  def parseToSkillList(jsonStr: String): escoSkillList = {
+    jsonStr.parseJson.convertTo[escoSkillList]
   }
 
-  implicit def skillListUnmarshaller: FromEntityUnmarshaller[SkillList] = {
+  implicit def skillListUnmarshaller: FromEntityUnmarshaller[escoSkillList] = {
     Unmarshaller.stringUnmarshaller.map(parseToSkillList)
   }
 
@@ -77,11 +78,11 @@ trait EscoJsonUtils extends JsonUtils {
     Unmarshaller.stringUnmarshaller.map(parseToSkill)
   }
 
-  implicit val skillListFormat: JsonFormat[SkillList] =
-    new JsonFormat[SkillList] {
-      override def read(json: JsValue): SkillList = {
+  implicit val escoSkillListFormat: JsonFormat[escoSkillList] =
+    new JsonFormat[escoSkillList] {
+      override def read(json: JsValue): escoSkillList = {
         val fields = json.asJsObject("SkillList object expected").fields
-        SkillList(
+        escoSkillList(
           links = fields("_links").convertTo[TopConceptList],
           classId = fields("classId").convertTo[String],
           className = fields("className").convertTo[String],
@@ -91,7 +92,7 @@ trait EscoJsonUtils extends JsonUtils {
         )
       }
 
-      override def write(obj: SkillList): JsValue = ???
+      override def write(obj: escoSkillList): JsValue = ???
     }
 
   implicit val skillFormat: JsonFormat[Skill] =
@@ -108,7 +109,24 @@ trait EscoJsonUtils extends JsonUtils {
         )
       }
 
-      override def write(obj: Skill): JsValue = ???
+      override def write(obj: Skill): JsValue = obj.description match {
+          //TODO it can be done better i'm sure :-) https://stackoverflow.com/questions/10819344/how-to-represent-optional-fields-in-spray-json
+          case Some(desc) => JsObject(
+            "className" -> JsString(obj.className),
+            "uri" -> JsString(obj.uri),
+            "title" -> JsString(obj.title),
+            "description" -> desc.toJson,
+            "preferredLabel" -> obj.preferredLabel.toJson,
+            "alternativeLabel" -> obj.alternativeLabel.toJson
+          )
+          case None => JsObject(
+            "className" -> JsString(obj.className),
+            "uri" -> JsString(obj.uri),
+            "title" -> JsString(obj.title),
+            "preferredLabel" -> obj.preferredLabel.toJson,
+            "alternativeLabel" -> obj.alternativeLabel.toJson
+          )
+      }
     }
 
   implicit val preferredLabelFormat: JsonFormat[PreferredLabel] =
@@ -121,7 +139,10 @@ trait EscoJsonUtils extends JsonUtils {
         )
       }
 
-      override def write(obj: PreferredLabel): JsValue = ???
+      override def write(obj: PreferredLabel): JsValue = JsObject(
+        Languages.HU.name -> JsString(obj.huLabel),
+        Languages.EN.name -> JsString(obj.enLabel)
+      )
     }
 
   implicit val alternativeLabel: JsonFormat[AlternativeLabel] =
@@ -134,7 +155,19 @@ trait EscoJsonUtils extends JsonUtils {
         )
       }
 
-      override def write(obj: AlternativeLabel): JsValue = ???
+      def getJsAlternateLabel(labelList: Option[List[String]], lang: Languages): (String, JsValue) = {
+        labelList match {
+          case None => (lang.name, JsNull)
+          case Some(list) => {
+            val labels: Vector[JsValue] = list.map(JsString(_))(breakOut)
+            (lang.name, JsArray(labels))
+          }
+        }
+      }
+
+      override def write(obj: AlternativeLabel): JsValue = JsObject(
+        Seq(getJsAlternateLabel(obj.enLabels,Languages.EN), getJsAlternateLabel(obj.huLabels,Languages.HU)).toMap
+      )
     }
 
   implicit val selfFormat: JsonFormat[Self] =
@@ -160,7 +193,7 @@ trait EscoJsonUtils extends JsonUtils {
         )
       }
 
-      override def write(obj: Description): JsValue = ???
+      override def write(obj: Description): JsValue = JsString(obj.enDescription)
     }
 
   implicit val topConceptListFormat: JsonFormat[TopConceptList] = jsonFormat2(TopConceptList)
