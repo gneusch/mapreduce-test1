@@ -62,11 +62,11 @@ trait JobPostingJsonUtils extends JsonUtils with SupportTools {
 }
 
 trait EscoJsonUtils extends JsonUtils {
-  def parseToSkillList(jsonStr: String): escoSkillList = {
-    jsonStr.parseJson.convertTo[escoSkillList]
+  def parseToSkillList(jsonStr: String): SelfConceptList = {
+    jsonStr.parseJson.convertTo[SelfConceptList]
   }
 
-  implicit def skillListUnmarshaller: FromEntityUnmarshaller[escoSkillList] = {
+  implicit def skillListUnmarshaller: FromEntityUnmarshaller[SelfConceptList] = {
     Unmarshaller.stringUnmarshaller.map(parseToSkillList)
   }
 
@@ -78,11 +78,11 @@ trait EscoJsonUtils extends JsonUtils {
     Unmarshaller.stringUnmarshaller.map(parseToSkill)
   }
 
-  implicit val escoSkillListFormat: JsonFormat[escoSkillList] =
-    new JsonFormat[escoSkillList] {
-      override def read(json: JsValue): escoSkillList = {
+  implicit val selfConceptListFormat: JsonFormat[SelfConceptList] =
+    new JsonFormat[SelfConceptList] {
+      override def read(json: JsValue): SelfConceptList = {
         val fields = json.asJsObject("SkillList object expected").fields
-        escoSkillList(
+        SelfConceptList(
           links = fields("_links").convertTo[TopConceptList],
           classId = fields("classId").convertTo[String],
           className = fields("className").convertTo[String],
@@ -92,7 +92,7 @@ trait EscoJsonUtils extends JsonUtils {
         )
       }
 
-      override def write(obj: escoSkillList): JsValue = ???
+      override def write(obj: SelfConceptList): JsValue = ???
     }
 
   implicit val skillFormat: JsonFormat[Skill] =
@@ -197,4 +197,5 @@ trait EscoJsonUtils extends JsonUtils {
     }
 
   implicit val topConceptListFormat: JsonFormat[TopConceptList] = jsonFormat2(TopConceptList)
+  implicit val skillListFormat: JsonFormat[SkillList] = jsonFormat1(SkillList.apply) //https://github.com/spray/spray-json/issues/74
 }

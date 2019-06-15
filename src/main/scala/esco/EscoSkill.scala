@@ -1,11 +1,13 @@
 package esco
 
+import java.io.{BufferedWriter, File, FileWriter}
+
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import utils.{EscoJsonUtils, HttpTools, Languages, QueueingHttpsTools}
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success}
+import scala.concurrent.Future
+import spray.json._
+
 
 case class Self(resource_uri: String, title: String, uri: String)
 case class TopConceptList(hasTopConcept: List[Self], self: Self)
@@ -22,8 +24,17 @@ case class AlternativeLabel(enLabels: Option[List[String]], huLabels: Option[Lis
     case None => List()
   }
 }
-case class escoSkillList(links: TopConceptList, classId: String, className: String, preferredLabel: PreferredLabel, title: String, uri: String)
+case class SelfConceptList(links: TopConceptList, classId: String, className: String, preferredLabel: PreferredLabel, title: String, uri: String)
 case class Skill(className: String, uri: String, title:String, description: Option[Description], preferredLabel: PreferredLabel, alternativeLabel: Option[AlternativeLabel])
+case class SkillList(skills: Seq[Skill])
+
+object SkillList extends EscoJsonUtils {
+  def toFile(skillList: SkillList, file: File): Unit = {
+    val bw = new BufferedWriter(new FileWriter(file))
+    bw.write(skillList.toJson.toString)
+    bw.close
+  }
+}
 
 trait EscoSkill extends EscoJsonUtils with HttpTools with EscoService {
 
@@ -31,13 +42,14 @@ trait EscoSkill extends EscoJsonUtils with HttpTools with EscoService {
   final val SKILL_URL = s"$API_URL$RESOURCE_URI$SKILL_URI"
   final val SKILL_LIST_URL = "http://data.europa.eu/esco/concept-scheme/skills"
 }
+
 class EscoSkillHttp extends EscoService with EscoSkill {
 
   def getSkillTitleList(langCode: Languages): Future[List[String]] = {
     val url = getSkillListUrl(langCode)
     val responseFuture = getInFuture(s"$API_URL$RESOURCE_URI$URI_PROP$url")
     responseFuture flatMap {
-      response => Unmarshal(response.entity).to[escoSkillList] map {
+      response => Unmarshal(response.entity).to[SelfConceptList] map {
         skillListResponse => skillListResponse.links.hasTopConcept map {
           self => self.title
         }
@@ -45,11 +57,11 @@ class EscoSkillHttp extends EscoService with EscoSkill {
     }
   }
 
-  def getSkillList(langCode: Languages): Future[escoSkillList] = {
+  def getSkillList(langCode: Languages): Future[SelfConceptList] = {
     val url = getSkillListUrl(langCode)
     val responseFuture = getInFuture(s"$API_URL$RESOURCE_URI$URI_PROP$url")
     responseFuture flatMap {
-      response => Unmarshal(response.entity).to[escoSkillList]
+      response => Unmarshal(response.entity).to[SelfConceptList]
     }
   }
 
