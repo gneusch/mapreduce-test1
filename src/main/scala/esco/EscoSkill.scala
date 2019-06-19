@@ -8,31 +8,56 @@ import utils.{EscoJsonUtils, HttpTools, Languages, QueueingHttpsTools}
 import scala.concurrent.Future
 import spray.json._
 
+import scala.io.Source
+
 
 case class Self(resource_uri: String, title: String, uri: String)
 case class TopConceptList(hasTopConcept: List[Self], self: Self)
 case class Description(enDescription: String)
-case class PreferredLabel(enLabel: String, huLabel: String)
-case class AlternativeLabel(enLabels: Option[List[String]], huLabels: Option[List[String]]) {
+case class PreferredLabel(enLabel: String, huLabel: String) {
+  def getLabel(lang: Languages): String = lang match {
+    case Languages.EN => enLabel
+    case _ => huLabel
+  }
+}
+case class AlternativeLabel(enLabels: Option[Seq[String]], huLabels: Option[Seq[String]]) {
   def getLabelList(lang: Languages) = lang match {
       case Languages.HU => getList(huLabels)
       case _ =>  getList(enLabels)
     }
 
-  private def getList(optList: Option[List[String]]): List[String] = optList match {
+  private def getList(optList: Option[Seq[String]]): Seq[String] = optList match {
     case Some(list) => list
-    case None => List()
+    case None => Seq()
   }
 }
 case class SelfConceptList(links: TopConceptList, classId: String, className: String, preferredLabel: PreferredLabel, title: String, uri: String)
 case class Skill(className: String, uri: String, title:String, description: Option[Description], preferredLabel: PreferredLabel, alternativeLabel: Option[AlternativeLabel])
-case class SkillList(skills: Seq[Skill])
+case class SkillList(skills: Seq[Skill]) {
+  def getPreferredLabelList(lang: Languages): Seq[String] = skills.map(_.preferredLabel.getLabel(lang))
+
+  def getAlternativeLabel(lang: Languages): Seq[String] = skills.flatMap(
+    skill => skill.alternativeLabel match {
+      case Some(alterLabel) => alterLabel.getLabelList(lang)
+      case None => Seq()
+    }
+  )
+
+  def getLabelList(lang: Languages) = getPreferredLabelList(lang) ++ getAlternativeLabel(lang)
+}
 
 object SkillList extends EscoJsonUtils {
   def toFile(skillList: SkillList, file: File): Unit = {
     val bw = new BufferedWriter(new FileWriter(file))
     bw.write(skillList.toJson.toString)
     bw.close
+  }
+
+  def fromFile(path: String): SkillList = {
+    val bufferedSource = Source.fromFile(path)
+    val skillList = bufferedSource.getLines.mkString.parseJson.convertTo[SkillList]
+    bufferedSource.close
+    skillList
   }
 }
 

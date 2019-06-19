@@ -19,26 +19,26 @@ case class JobPosting (
                         company: String,
                         companyRatingValue: Double,
                         companyRatingCount: Int,
-                        jobDescription: List[String],
+                        jobDescription: Seq[String],
                         postingTime: String,
                         jobLocation: String
                       ){
-  def jobDescriptionToStringList: List[String] = {
+  def jobDescriptionToStringList: Seq[String] = {
     HtmlUtils.removeMarkup(jobDescription.mkString)
       .replaceAll("[^\\p{L}\\p{Nd}]+", " ")
       .split("\\s+")
       .map(_.trim)
       .filter(_.nonEmpty)
-      .toList
+      .toSeq
   }
 }
 
 object JobPosting {
 
-  def jobDescGramListInEscoSkills(jobDescGramList: List[String], escoSkillList: List[String]): List[String] =
+  def jobDescGramListInEscoSkills(jobDescGramList: Seq[String], escoSkillList: Seq[String]): Seq[String] =
     jobDescGramList.filter(jobDescGram => escoSkillList.exists(escoSkill => escoSkill.contains(jobDescGram)))
 
-  def escoSkillsListWithJobDesc(jobDescGramList: List[String], escoSkillList: List[String]): List[String] =
+  def escoSkillsListWithJobDesc(jobDescGramList: Seq[String], escoSkillList: Seq[String]): Seq[String] =
     escoSkillList.filter(escoSkill => jobDescGramList.exists(jobDescGram => escoSkill.contains(jobDescGram)))
 
 
@@ -48,8 +48,8 @@ object JobPostingCreator extends JobPostingJsonUtils {
   def fromJsonLine(jobPostingString: String): JobPosting = jobPostingString.parseJson.convertTo[JobPosting]
 }
 
-case class JobPostingFile(jobPostingLines: List[String]) {
-  def getJobPostings: List[JobPosting] = jobPostingLines map {
+case class JobPostingFile(jobPostingLines: Seq[String]) {
+  def getJobPostings: Seq[JobPosting] = jobPostingLines map {
     jobPosting => JobPostingCreator.fromJsonLine(jobPosting)
   }
 }
@@ -59,15 +59,15 @@ object JobPostingFile  {
     val bufferedSource = Source.fromFile(filePath)
     try {
       val jobPostingLines = bufferedSource.getLines()
-      new JobPostingFile(jobPostingLines.toList)
+      new JobPostingFile(jobPostingLines.toSeq)
     } finally{
       bufferedSource.close()
     }
   }
 
-  def getFromDir(path: String, extensions: List[String]): List[JobPostingFile] = {
+  def getFromDir(path: String, extensions: Seq[String]): Seq[JobPostingFile] = {
     FileUtils.listFiles(new File(path), extensions.toArray, false).asScala.map{
       f => apply(f.getAbsolutePath)
-    }.toList
+    }.toSeq
   }
 }

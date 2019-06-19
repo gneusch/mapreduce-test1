@@ -51,7 +51,7 @@ trait JobPostingJsonUtils extends JsonUtils with SupportTools {
             case Some(int) => int
             case None => 0
           },
-          jobDescription = fields("job_description").convertTo[List[String]],
+          jobDescription = fields("job_description").convertTo[Seq[String]],
           postingTime = fields("posting_time").convertTo[String],
           jobLocation = fields("job_location").convertTo[String]
         )
@@ -109,22 +109,35 @@ trait EscoJsonUtils extends JsonUtils {
         )
       }
 
-      override def write(obj: Skill): JsValue = obj.description match {
+      override def write(obj: Skill): JsValue = (obj.description, obj.alternativeLabel) match {
           //TODO it can be done better i'm sure :-) https://stackoverflow.com/questions/10819344/how-to-represent-optional-fields-in-spray-json
-          case Some(desc) => JsObject(
+          case (Some(desc), Some(altLab)) => JsObject(
             "className" -> JsString(obj.className),
             "uri" -> JsString(obj.uri),
             "title" -> JsString(obj.title),
             "description" -> desc.toJson,
             "preferredLabel" -> obj.preferredLabel.toJson,
-            "alternativeLabel" -> obj.alternativeLabel.toJson
+            "alternativeLabel" -> altLab.toJson
           )
-          case None => JsObject(
+          case (Some(desc), None) => JsObject(
+            "className" -> JsString(obj.className),
+            "uri" -> JsString(obj.uri),
+            "title" -> JsString(obj.title),
+            "description" -> desc.toJson,
+            "preferredLabel" -> obj.preferredLabel.toJson
+          )
+          case (None, Some(altLab)) => JsObject(
             "className" -> JsString(obj.className),
             "uri" -> JsString(obj.uri),
             "title" -> JsString(obj.title),
             "preferredLabel" -> obj.preferredLabel.toJson,
-            "alternativeLabel" -> obj.alternativeLabel.toJson
+            "alternativeLabel" -> altLab.toJson
+          )
+          case (None, None) => JsObject(
+            "className" -> JsString(obj.className),
+            "uri" -> JsString(obj.uri),
+            "title" -> JsString(obj.title),
+            "preferredLabel" -> obj.preferredLabel.toJson
           )
       }
     }
@@ -149,25 +162,24 @@ trait EscoJsonUtils extends JsonUtils {
     new JsonFormat[AlternativeLabel] {
       override def read(json: JsValue): AlternativeLabel = {
         val fields = json.asJsObject("AlternativeLabel object expected").fields
-        AlternativeLabel(
-          huLabels = getOptionalField[List[String]](fields, Languages.HU.name),
-          enLabels = getOptionalField[List[String]](fields, Languages.EN.name)
-        )
+        AlternativeLabel(enLabels = getOptionalField[Seq[String]](fields, Languages.EN.name), huLabels = getOptionalField[Seq[String]](fields, Languages.HU.name))
       }
 
-      def getJsAlternateLabel(labelList: Option[List[String]], lang: Languages): (String, JsValue) = {
+      def getJsAlternateLabel(labelList: Option[Seq[String]], lang: Languages): Option[(String, JsValue)] = {
         labelList match {
-          case None => (lang.name, JsNull)
+          case None => None
           case Some(list) => {
             val labels: Vector[JsValue] = list.map(JsString(_))(breakOut)
-            (lang.name, JsArray(labels))
+            Some((lang.name, JsArray(labels)))
           }
         }
       }
 
-      override def write(obj: AlternativeLabel): JsValue = JsObject(
-        Seq(getJsAlternateLabel(obj.enLabels,Languages.EN), getJsAlternateLabel(obj.huLabels,Languages.HU)).toMap
-      )
+      override def write(obj: AlternativeLabel): JsValue = {
+        val alternativeLabels = Seq(getJsAlternateLabel(obj.enLabels,Languages.EN), getJsAlternateLabel(obj.huLabels,Languages.HU)).flatten
+        JsObject(alternativeLabels.toMap)
+      }
+
     }
 
   implicit val selfFormat: JsonFormat[Self] =
@@ -193,7 +205,11 @@ trait EscoJsonUtils extends JsonUtils {
         )
       }
 
-      override def write(obj: Description): JsValue = JsString(obj.enDescription)
+      override def write(obj: Description): JsValue = JsObject(
+        "en" -> JsObject(
+          "literal" -> JsString(obj.enDescription)
+        )
+      )
     }
 
   implicit val topConceptListFormat: JsonFormat[TopConceptList] = jsonFormat2(TopConceptList)

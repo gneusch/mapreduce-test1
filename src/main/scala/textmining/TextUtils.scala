@@ -2,25 +2,25 @@ package textmining
 
 object TextUtils {
 
-  def wordPairs(corpus: List[String]) = corpus flatMap { a =>
+  def wordPairs(corpus: Seq[String]) = corpus flatMap { a =>
       corpus flatMap { b =>
         if(a!=b) Option(a, b)
         else None
     }
   }
 
-  def genBiGrams(wordList: List[String]): List[(String,String)] = wordList match {
-    case x :: Nil => Nil
-    case x :: xs => (x, xs.head) :: genBiGrams(xs)
-    case _ => Nil
+  def genBiGrams(wordList: Seq[String]): Seq[(String,String)] = wordList match {
+    case Seq(x) => Seq()
+    case Seq(head, tail@_*) => (head, tail.head) +: genBiGrams(tail)
+    case _ => Seq()
   }
 
-  def genTriGrams(wordList: List[String]): List[(String, String, String)] = wordList match {
-    case x :: y :: Nil => Nil
-    case x :: y :: xs => (x, y, xs.head) :: genTriGrams(y :: xs)
-    case _ => Nil
+  def genTriGrams(wordList: Seq[String]): Seq[(String, String, String)] = wordList match {
+    case Seq(first, second) => Seq()
+    case Seq(first, second, tail@_*) => (first, second, tail.head) +: genTriGrams(second +: tail)
+    case _ => Seq()
   }
 
-  def strListToLower(wordList: List[String]) = wordList map { _.toLowerCase }
+  def strListToLower(wordList: Seq[String]) = wordList map { _.toLowerCase }
 
 }
